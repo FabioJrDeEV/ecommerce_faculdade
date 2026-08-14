@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Header from "./_components/header/Header";
-import ButtonCategorias from "./_components/buttonCategorias/ButtonCategorias";
-import ProductCard from "./_components/productCard/ProductCard";
+import Banner from "../_components/banner/Banner";
+import Sobre from "../_components/sobre/Sobre";
+import ButtonCategorias from "../_components/buttonCategorias/ButtonCategorias";
+import ProductCard from "../_components/productCard/ProductCard";
 import { categorias, produtos } from "@/lib/produtos";
 
 export default function App() {
@@ -18,8 +19,9 @@ export default function App() {
 
   return (
     <>
-      <Header />
-      <div className="border-b border-gray-300 py-4">
+      <Banner />
+      <Sobre />
+      <div id="catalogo" className="border-b border-gray-300 py-4">
         <div className="flex w-full mx-auto max-w-7xl px-4 gap-3 overflow-x-auto no-scrollbar sm:justify-center">
           {categorias.map((categoria) => (
             <ButtonCategorias

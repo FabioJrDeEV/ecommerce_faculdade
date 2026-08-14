@@ -1,12 +1,24 @@
 import type { Produto } from "@/lib/produtos";
 import { ShoppingCart } from "@deemlol/next-icons";
 import Image from "next/image";
+import { useCarrinho } from "@/lib/carrinho";
 
 type ProductCardProps = {
   produto: Produto;
 };
 
 export default function ProductCard({ produto }: ProductCardProps) {
+  const { adicionar } = useCarrinho();
+
+  const handleAdicionar = () => {
+    adicionar({
+      id: produto.id,
+      nome: produto.nome,
+      preco: produto.preco,
+      imagem: produto.imagem,
+    });
+  };
+
   return (
     <div className="flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200">
       <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -34,6 +46,7 @@ export default function ProductCard({ produto }: ProductCardProps) {
         </p>
         <button
           type="button"
+          onClick={handleAdicionar}
           className="mt-auto flex items-center justify-center gap-2 bg-blue-500 text-white rounded-md py-2 text-sm font-semibold hover:bg-blue-600 transition-colors cursor-pointer"
         >
           <ShoppingCart size={18} />
