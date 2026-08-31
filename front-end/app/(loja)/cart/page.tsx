@@ -110,12 +110,12 @@ export default function CartPage() {
                 })}
               </p>
             </div>
-            <button
-              type="button"
-              className="bg-blue-500 text-white font-semibold px-8 py-3 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer"
+            <Link
+              href="/checkout"
+              className="bg-blue-500 text-white font-semibold px-8 py-3 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer inline-block text-center"
             >
               Finalizar compra
-            </button>
+            </Link>
           </div>
         </>
       )}
