@@ -6,16 +6,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterData } from "@/lib/validacoes";
-
-async function registrarUsuario(dados: RegisterData): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  console.log(dados);
-}
+import { useAuth } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { registrar } = useAuth();
   const [enviando, setEnviando] = useState(false);
   const [registrado, setRegistrado] = useState(false);
+  const [erro, setErro] = useState("");
 
   const {
     register,
@@ -27,14 +25,19 @@ export default function RegisterPage() {
 
   const onSubmit = async (dados: RegisterData) => {
     setEnviando(true);
+    setErro("");
     try {
-      await registrarUsuario(dados);
+      await registrar({
+        nome: dados.nome,
+        email: dados.email,
+        senha: dados.senha,
+      });
       setRegistrado(true);
       setTimeout(() => {
         router.push("/login");
       }, 4000);
-    } catch (erro) {
-      console.error(erro);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao registrar");
     } finally {
       setEnviando(false);
     }
@@ -153,6 +156,9 @@ export default function RegisterPage() {
           >
             {enviando ? "Registrando..." : "Registrar"}
           </button>
+          {erro && (
+            <p className="text-xs text-red-500 text-center">{erro}</p>
+          )}
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-6">

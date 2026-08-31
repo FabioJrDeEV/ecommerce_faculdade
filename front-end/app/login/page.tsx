@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginData } from "@/lib/validacoes";
+import { useAuth } from "@/lib/auth";
+import { useState } from "react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+  const [erro, setErro] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -14,8 +21,14 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (dados: LoginData) => {
-    console.log(dados);
+  const onSubmit = async (dados: LoginData) => {
+    setErro("");
+    try {
+      await login(dados.email, dados.senha);
+      router.push("/");
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao entrar");
+    }
   };
 
   return (
@@ -76,6 +89,9 @@ export default function LoginPage() {
           >
             Entrar
           </button>
+          {erro && (
+            <p className="text-xs text-red-500 text-center">{erro}</p>
+          )}
         </form>
 
         <p className="text-sm text-center text-gray-500 mt-6">
