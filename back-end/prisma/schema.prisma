@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id       String   @id @default(cuid())
+  nome     String
+  email    String   @unique
+  senha    String
+  criadoEm DateTime @default(now())
+
+  pedidos Pedido[]
+}
+
+model Pedido {
+  id               String   @id @default(cuid())
+  usuarioId        String
+  total            Float
+  stripeSessionId  String?  @unique
+  status           String   @default("pendente")
+  criadoEm         DateTime @default(now())
+
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id])
+  itens     ItemPedido[]
+}
+
+model ItemPedido {
+  id        String @id @default(cuid())
+  pedidoId  String
+  produtoId String
+  nome      String
+  preco     Float
+  quantidade Int
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+}
