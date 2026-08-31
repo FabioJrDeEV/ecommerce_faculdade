@@ -9,8 +9,7 @@ export default function Footer() {
             Loja do Barbeiro
           </h2>
           <p className="text-sm text-gray-400">
-            O lugar mais completo para equipamentos e produtos da sua
-            barbearia.
+            O lugar mais completo para equipamentos e produtos da sua barbearia.
           </p>
         </div>
         <div className="flex flex-col gap-3">
@@ -43,7 +42,7 @@ export default function Footer() {
         <div className="flex flex-col gap-3">
           <h3 className="font-semibold text-white">Contato</h3>
           <p className="text-sm text-gray-400">contato@lojadobarbeiro.com</p>
-          <p className="text-sm text-gray-400">(11) 9999-9999</p>
+          <p className="text-sm text-gray-400">(86) 9999-9999</p>
           <p className="text-sm text-gray-400">Seg a Sáb, 9h às 19h</p>
         </div>
       </div>

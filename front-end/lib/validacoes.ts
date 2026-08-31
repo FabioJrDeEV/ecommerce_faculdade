@@ -23,3 +23,14 @@ export const registerSchema = z
   });
 
 export type RegisterData = z.infer<typeof registerSchema>;
+
+export const checkoutSchema = z.object({
+  nome: z.string().min(1, "Informe o nome completo"),
+  email: z.string().min(1, "Informe o e-mail").email("E-mail inválido"),
+  endereco: z.string().min(1, "Informe o endereço"),
+  cidade: z.string().min(1, "Informe a cidade"),
+  estado: z.string().min(2, "Informe o estado").max(2, "UF com 2 letras"),
+  cep: z.string().min(1, "Informe o CEP"),
+});
+
+export type CheckoutData = z.infer<typeof checkoutSchema>;

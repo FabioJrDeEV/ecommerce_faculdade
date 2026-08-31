@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 export type CarrinhoItem = {
@@ -10,6 +10,18 @@ export type CarrinhoItem = {
   imagem: string;
   quantidade: number;
 };
+
+const STORAGE_KEY = "carrinho";
+
+function carregarItens(): CarrinhoItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const salvo = localStorage.getItem(STORAGE_KEY);
+    return salvo ? (JSON.parse(salvo) as CarrinhoItem[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 type CarrinhoContextType = {
   itens: CarrinhoItem[];
@@ -26,7 +38,15 @@ const CarrinhoContext = createContext<CarrinhoContextType | undefined>(
 );
 
 export function CarrinhoProvider({ children }: { children: ReactNode }) {
-  const [itens, setItens] = useState<CarrinhoItem[]>([]);
+  const [itens, setItens] = useState<CarrinhoItem[]>(carregarItens);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(itens));
+    } catch {
+      // ignore
+    }
+  }, [itens]);
 
   const adicionar = useCallback(
     (item: Omit<CarrinhoItem, "quantidade">) => {

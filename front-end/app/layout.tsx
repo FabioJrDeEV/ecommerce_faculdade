@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CarrinhoProvider } from "@/lib/carrinho";
+import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Loja do Barbeiro",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="pt-br" className={`h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <CarrinhoProvider>{children}</CarrinhoProvider>
+        <AuthProvider>
+          <CarrinhoProvider>{children}</CarrinhoProvider>
+        </AuthProvider>
       </body>
     </html>
   );

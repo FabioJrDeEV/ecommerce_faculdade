@@ -3,19 +3,19 @@
 import { User, ShoppingCart, Menu } from "@deemlol/next-icons";
 import Link from "next/link";
 import { useState } from "react";
-import { produtos } from "@/lib/produtos";
+import { produtos, normalizar } from "@/lib/produtos";
 import { useCarrinho } from "@/lib/carrinho";
+import { useAuth } from "@/lib/auth";
 import BuscarInput from "../buscarInput/BuscarInput";
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState(false);
   const [busca, setBusca] = useState("");
   const { totalItens } = useCarrinho();
+  const { usuario, logout } = useAuth();
 
   const sugestoes = busca.trim()
-    ? produtos
-        .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
-        .slice(0, 5)
+    ? produtos.filter((p) => normalizar(p.nome).includes(normalizar(busca)))
     : [];
 
   return (
@@ -38,9 +38,27 @@ export default function Header() {
         <div className="hidden lg:flex items-center gap-4">
           <div className="flex items-center gap-2">
             <User size={24} style={{ color: "#008ECC" }} />
-            <Link href="/login" className="text-gray-600 text-sm font-semibold">
-              Entrar/Registrar
-            </Link>
+            {usuario ? (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600 text-sm font-semibold">
+                  {usuario.nome}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-gray-500 text-sm hover:text-red-600 cursor-pointer"
+                >
+                  Sair
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="text-gray-600 text-sm font-semibold"
+              >
+                Entrar/Registrar
+              </Link>
+            )}
           </div>
           <span className="h-5.5 border border-gray-300"></span>
           <div className="flex items-center gap-2 relative">
@@ -71,12 +89,27 @@ export default function Header() {
                     className="shrink-0"
                     style={{ color: "#008ECC" }}
                   />
-                  <Link
-                    href="/login"
-                    className="block px-4 py-2 text-gray-600 text-sm font-semibold"
-                  >
-                    Entrar/Registrar
-                  </Link>
+                  {usuario ? (
+                    <div className="flex items-center gap-2">
+                      <span className="px-4 py-2 text-gray-600 text-sm font-semibold">
+                        {usuario.nome}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={logout}
+                        className="text-gray-500 text-sm hover:text-red-600 cursor-pointer"
+                      >
+                        Sair
+                      </button>
+                    </div>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="block px-4 py-2 text-gray-600 text-sm font-semibold"
+                    >
+                      Entrar/Registrar
+                    </Link>
+                  )}
                 </div>
                 <div className="flex items-center">
                   <ShoppingCart
