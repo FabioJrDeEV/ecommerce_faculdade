@@ -12,8 +12,21 @@ model Usuario {
   email    String   @unique
   senha    String
   criadoEm DateTime @default(now())
+  carrinho String?  // JSON com itens do carrinho
+  pedidos  Pedido[]
+  avaliacoes Avaliacao[]
+}
 
-  pedidos Pedido[]
+model Avaliacao {
+  id         String   @id @default(cuid())
+  usuarioId  String
+  nota       Int      // 1 a 5
+  comentario String?
+  criadoEm   DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
 }
 
 model Pedido {
