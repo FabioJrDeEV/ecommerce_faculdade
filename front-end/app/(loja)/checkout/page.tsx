@@ -1,13 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCarrinho } from "@/lib/carrinho";
+import { useAuth } from "@/lib/auth";
 import { checkoutSchema, type CheckoutData } from "@/lib/validacoes";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
 export default function CheckoutPage() {
   const { itens, totalPreco, totalItens } = useCarrinho();
+  const { token, status } = useAuth();
+  const router = useRouter();
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -16,8 +26,49 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
   });
 
-  const onSubmit = (dados: CheckoutData) => {
-    console.log(dados);
+  const onSubmit = async (_dados: CheckoutData) => {
+    if (status !== "authenticated" || !token) {
+      router.push("/login?redirect=/checkout");
+      return;
+    }
+
+    setErro(null);
+    setEnviando(true);
+
+    try {
+      const res = await fetch(`${API_URL}/checkout/session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: itens.map((item) => ({
+            id: item.id,
+            name: item.nome,
+            price: item.preco,
+            quantity: item.quantidade,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const erroBody = await res.json().catch(() => null);
+        throw new Error(
+          erroBody?.message ?? "Falha ao iniciar pagamento",
+        );
+      }
+
+      const { url } = (await res.json()) as { url: string };
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("URL de checkout não retornada");
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao finalizar compra");
+      setEnviando(false);
+    }
   };
 
   if (itens.length === 0) {
@@ -188,11 +239,18 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {erro && (
+            <p className="text-sm text-red-500 text-center" role="alert">
+              {erro}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="bg-blue-500 text-white font-semibold py-3 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer"
+            disabled={enviando}
+            className="bg-blue-500 text-white font-semibold py-3 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Ir para pagamento
+            {enviando ? "Redirecionando..." : "Ir para pagamento"}
           </button>
           <Link
             href="/cart"
