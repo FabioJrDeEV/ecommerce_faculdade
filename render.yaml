@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: loja-do-barbeiro-api
+    runtime: node
+    plan: free
+    rootDir: back-end
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma generate && node dist/src/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: PORT
+        value: 3333
+      - key: FRONT_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_SUCCESS_URL
+        sync: false
+      - key: STRIPE_CANCEL_URL
+        sync: false
+    healthCheckPath: /health

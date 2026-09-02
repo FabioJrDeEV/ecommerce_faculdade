@@ -54,11 +54,12 @@ async function bootstrap() {
   app.use(helmet());
 
   // CORS — aceita múltiplas origens separadas por vírgula
-  const corsOrigins = (process.env.FRONT_URL ?? 'http://localhost:3000')
+  const corsOrigins = (process.env.FRONT_URL || 'http://localhost:3000')
     .split(',')
-    .map((o) => o.trim());
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: corsOrigins,
+    origin: corsOrigins.length > 0 ? corsOrigins : true,
     credentials: true,
   });
 
@@ -70,8 +71,10 @@ async function bootstrap() {
     }),
   );
 
-  const port = parseInt(process.env.PORT ?? '3333', 10);
+  const port = parseInt(process.env.PORT || '3333', 10);
   await app.listen(port, '0.0.0.0');
-  logger.log(`Backend rodando na porta ${port} (origens: ${corsOrigins.join(', ')})`);
+  logger.log(
+    `Backend rodando em 0.0.0.0:${port} (origens: ${corsOrigins.join(', ') || '*'})`,
+  );
 }
 void bootstrap();
