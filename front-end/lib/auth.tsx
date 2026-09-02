@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
@@ -19,9 +12,9 @@ type Usuario = {
 };
 
 type AuthContextType = {
+  status: string;
   usuario: Usuario | null;
   token: string | null;
-  carregando: boolean;
   login: (email: string, senha: string) => Promise<Usuario>;
   registrar: (dados: {
     nome: string;
@@ -31,77 +24,124 @@ type AuthContextType = {
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function parseUser(data: any): Usuario {
+  return {
+    id: data.id ?? "",
+    nome: data.nome ?? "",
+    email: data.email ?? "",
+  };
+}
+
+function isAuthenticated(token: string | null): boolean {
+  return token !== null && token.length > 0;
+}
+
+export default function AuthProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState("unauthenticated");
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [token, setToken] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("token");
+    return window.localStorage.getItem("token");
   });
-  const [carregando, setCarregando] = useState(() => token !== null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthenticated(token)) {
+      setStatus("unauthenticated");
+      setUsuario(null);
+      return;
+    }
     fetch(`${API_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(async (res) => {
+      .then((res) => {
         if (!res.ok) throw new Error("Não autenticado");
-        return res.json() as Promise<Usuario>;
+        return res.json();
       })
-      .then((dados) => {
-        setUsuario(dados);
-        setCarregando(false);
+      .then((data) => {
+        setUsuario(parseUser(data));
+        setStatus("authenticated");
       })
       .catch(() => {
-        localStorage.removeItem("token");
+        window.localStorage.removeItem("token");
         setToken(null);
-        setCarregando(false);
+        setStatus("unauthenticated");
       });
-  }, [token]);
-
-  const login = useCallback(async (email: string, senha: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, senha }),
-    });
-    if (!res.ok) {
-      const erro = await res.json().catch(() => null);
-      throw new Error(erro?.message ?? "Credenciais inválidas");
-    }
-    const dados = await res.json();
-    localStorage.setItem("token", dados.access_token);
-    setToken(dados.access_token);
-    setUsuario(dados.usuario);
-    return dados.usuario as Usuario;
   }, []);
 
-  const registrar = useCallback(
-    async (dados: { nome: string; email: string; senha: string }) => {
-      const res = await fetch(`${API_URL}/auth/register`, {
+  function login(email: string, senha: string) {
+    return new Promise<Usuario>((resolve, reject) => {
+      fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, senha }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            return res
+              .json()
+              .then((erro) =>
+                reject(new Error(erro?.message ?? "Credenciais inválidas")),
+              );
+          }
+          return res.json();
+        })
+        .then((dados) => {
+          window.localStorage.setItem("token", dados.access_token);
+          setToken(dados.access_token);
+          const usuario = parseUser(dados.usuario);
+          setUsuario(usuario);
+          setStatus("authenticated");
+          resolve(usuario);
+        })
+        .catch(reject);
+    });
+  }
+
+  function registrar(dados: { nome: string; email: string; senha: string }) {
+    return new Promise<void>((resolve, reject) => {
+      fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dados),
-      });
-      if (!res.ok) {
-        const erro = await res.json().catch(() => null);
-        throw new Error(erro?.message ?? "Erro ao registrar");
-      }
-    },
-    [],
-  );
+      })
+        .then((res) => {
+          if (!res.ok) {
+            return res
+              .json()
+              .then((erro) =>
+                reject(new Error(erro?.message ?? "Erro ao registrar")),
+              );
+          }
+          window.localStorage.removeItem("token");
+          setToken(null);
+          setStatus("unauthenticated");
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
+  function logout() {
+    window.localStorage.removeItem("token");
     setToken(null);
     setUsuario(null);
-  }, []);
+    setStatus("unauthenticated");
+  }
 
   const value = useMemo(
-    () => ({ usuario, token, carregando, login, registrar, logout }),
-    [usuario, token, carregando, login, registrar, logout],
+    () => ({
+      status,
+      usuario,
+      token,
+      login,
+      registrar,
+      logout,
+    }),
+    [status, usuario, token],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

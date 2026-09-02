@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthProvider from "@/lib/auth";
 import { CarrinhoProvider } from "@/lib/carrinho";
-import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Loja do Barbeiro",

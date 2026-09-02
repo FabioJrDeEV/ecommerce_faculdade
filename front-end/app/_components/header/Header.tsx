@@ -14,6 +14,8 @@ export default function Header() {
   const { totalItens } = useCarrinho();
   const { usuario, logout } = useAuth();
 
+  const primeiroNome = usuario?.nome?.split(" ")[0] ?? "";
+
   const sugestoes = busca.trim()
     ? produtos.filter((p) => normalizar(p.nome).includes(normalizar(busca)))
     : [];
@@ -41,7 +43,7 @@ export default function Header() {
             {usuario ? (
               <div className="flex items-center gap-2">
                 <span className="text-gray-600 text-sm font-semibold">
-                  {usuario.nome}
+                  {primeiroNome}
                 </span>
                 <button
                   type="button"
@@ -92,7 +94,7 @@ export default function Header() {
                   {usuario ? (
                     <div className="flex items-center gap-2">
                       <span className="px-4 py-2 text-gray-600 text-sm font-semibold">
-                        {usuario.nome}
+                        {primeiroNome}
                       </span>
                       <button
                         type="button"
