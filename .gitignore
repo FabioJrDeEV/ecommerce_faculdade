@@ -1,0 +1,13 @@
+back-end/.agents/
+back-end/.claude/
+back-end/.windsurf/
+back-end/skills-lock.json
+back-end/.env
+back-end/.env.local
+front-end/.env
+front-end/.env.local
+front-end/.next/
+back-end/dist/
+node_modules/
+*.log
+.DS_Store
