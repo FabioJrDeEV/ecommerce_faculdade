@@ -2,21 +2,82 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useCarrinho } from "@/lib/carrinho";
 
-export default function CartPage() {
-  const { itens, totalPreco, totalItens, remover, atualizarQuantidade, limpar } =
-    useCarrinho();
+function CartContent() {
+  const {
+    itens,
+    totalPreco,
+    totalItens,
+    remover,
+    atualizarQuantidade,
+    limpar,
+  } = useCarrinho();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const sucesso = searchParams.get("sucesso") === "1";
+  const cancelado = searchParams.get("cancelado") === "1";
+
+  useEffect(() => {
+    if (sucesso && itens.length > 0) {
+      limpar();
+    }
+  }, [sucesso, limpar, itens.length]);
+
+  function fecharSucesso() {
+    router.replace("/cart");
+  }
 
   return (
     <main className="w-full mx-auto max-w-7xl px-4 py-8 flex-1">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Meu Carrinho</h1>
 
+      {sucesso && (
+        <div
+          className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          role="status"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-green-800">
+              Compra finalizada com sucesso!
+            </h2>
+            <p className="text-sm text-green-700 mt-1">
+              Obrigado pela sua compra. Adoraríamos ouvir sua opinião sobre a
+              experiência.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link
+              href="/avaliar"
+              className="bg-blue-500 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors text-center"
+            >
+              Avaliar agora
+            </Link>
+            <button
+              type="button"
+              onClick={fecharSucesso}
+              className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer px-4 py-2"
+            >
+              Depois
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cancelado && (
+        <div
+          className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800"
+          role="status"
+        >
+          Pagamento cancelado. Seus itens continuam no carrinho.
+        </div>
+      )}
+
       {itens.length === 0 ? (
         <div className="text-center py-16 flex flex-col items-center gap-4">
-          <p className="text-gray-500 text-lg">
-            Seu carrinho está vazio.
-          </p>
+          <p className="text-gray-500 text-lg">Seu carrinho está vazio.</p>
           <Link
             href="/"
             className="bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
@@ -120,5 +181,19 @@ export default function CartPage() {
         </>
       )}
     </main>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="w-full mx-auto max-w-7xl px-4 py-8 flex-1">
+          <p className="text-gray-500">Carregando...</p>
+        </main>
+      }
+    >
+      <CartContent />
+    </Suspense>
   );
 }
