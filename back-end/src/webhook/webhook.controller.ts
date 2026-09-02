@@ -29,11 +29,11 @@ export class WebhookController {
       return res.status(400).json({ error: 'Missing stripe-signature header' });
     }
 
-    // Converte req.body para string e depois para Buffer para o constructEvent
-    const rawBody = JSON.stringify(req.body);
+    // O bodyParser foi desativado globalmente e registramos um parser raw
+    // apenas para esta rota em main.ts. Aqui recebemos o Buffer.
     let event;
     try {
-      event = this.stripe.constructEvent(Buffer.from(rawBody), sig, webhookSecret);
+      event = this.stripe.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
       return res.status(400).json({ error: 'Invalid signature' });
