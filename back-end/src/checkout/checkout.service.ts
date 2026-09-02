@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -21,7 +21,7 @@ export class CheckoutService {
   async createSession(userId: string, items: CheckoutItem[]) {
     const lineItems = items.map((item) => ({
       name: item.name,
-      amount: Math.round(item.price * 100), // converter para centavos
+      amount: Math.round(item.price * 100),
       quantity: item.quantity,
     }));
 
@@ -40,7 +40,7 @@ export class CheckoutService {
       },
     });
 
-    return { url: session.url };
+    return { url: session.url, sessionId: session.id };
   }
 
   async handleWebhookEvent(eventType: string, session: any) {
@@ -49,17 +49,60 @@ export class CheckoutService {
     }
   }
 
+  async finalizarPedido(
+    userId: string,
+    items: CheckoutItem[],
+    stripeSessionId?: string,
+  ) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Itens do pedido são obrigatórios');
+    }
+
+    const total = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    const pedido = await this.prisma.pedido.create({
+      data: {
+        usuarioId: userId,
+        total,
+        stripeSessionId: stripeSessionId ?? null,
+        status: 'pago',
+        itens: {
+          create: items.map((item) => ({
+            produtoId: item.id,
+            nome: item.name,
+            preco: item.price,
+            quantidade: item.quantity,
+          })),
+        },
+      },
+      include: { itens: true },
+    });
+
+    return pedido;
+  }
+
   private async createOrderFromSession(session: any) {
     const userId = session.metadata?.userId;
     const itemsJson = session.metadata?.items;
 
     if (!userId || !itemsJson) return;
 
-    const items = JSON.parse(itemsJson) as Array<{ id: string; quantity: number }>;
+    let items: Array<{ id: string; quantity: number; name: string; price: number }> = [];
+    try {
+      items = JSON.parse(itemsJson);
+    } catch {
+      return;
+    }
+
     const total = session.amount_total ? session.amount_total / 100 : 0;
 
-    await this.prisma.pedido.create({
-      data: {
+    await this.prisma.pedido.upsert({
+      where: { stripeSessionId: session.id },
+      update: {},
+      create: {
         usuarioId: userId,
         total,
         stripeSessionId: session.id,
@@ -67,9 +110,9 @@ export class CheckoutService {
         itens: {
           create: items.map((item) => ({
             produtoId: item.id,
+            nome: item.name ?? '',
+            preco: item.price ?? 0,
             quantidade: item.quantity,
-            nome: '', // será preenchido se necessário via lookup
-            preco: 0, // idealmente buscar do produto
           })),
         },
       },

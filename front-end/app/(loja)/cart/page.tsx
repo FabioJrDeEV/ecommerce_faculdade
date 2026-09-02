@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCarrinho } from "@/lib/carrinho";
+import { useAuth } from "@/lib/auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+
+type CheckoutItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
 
 function CartContent() {
   const {
@@ -15,16 +25,59 @@ function CartContent() {
     atualizarQuantidade,
     limpar,
   } = useCarrinho();
+  const { token, status } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const sucesso = searchParams.get("sucesso") === "1";
   const cancelado = searchParams.get("cancelado") === "1";
+  const [finalizando, setFinalizando] = useState(false);
+  const [pedidoErro, setPedidoErro] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sucesso && itens.length > 0) {
-      limpar();
+    if (!sucesso) return;
+    if (status !== "authenticated" || !token) return;
+    if (finalizando) return;
+
+    let itensPendentes: CheckoutItem[] = [];
+    try {
+      const salvo = window.sessionStorage.getItem("checkout:pending");
+      if (salvo) {
+        itensPendentes = JSON.parse(salvo) as CheckoutItem[];
+        window.sessionStorage.removeItem("checkout:pending");
+      }
+    } catch {
+      itensPendentes = [];
     }
-  }, [sucesso, limpar, itens.length]);
+
+    if (itensPendentes.length === 0) {
+      limpar();
+      return;
+    }
+
+    setFinalizando(true);
+    setPedidoErro(null);
+    fetch(`${API_URL}/checkout/finalizar`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ items: itensPendentes }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const erroBody = await res.json().catch(() => null);
+          throw new Error(erroBody?.message ?? "Falha ao registrar pedido");
+        }
+        limpar();
+      })
+      .catch((e) => {
+        setPedidoErro(
+          e instanceof Error ? e.message : "Erro ao registrar pedido",
+        );
+      })
+      .finally(() => setFinalizando(false));
+  }, [sucesso, status, token, finalizando, limpar]);
 
   function fecharSucesso() {
     router.replace("/cart");
@@ -41,28 +94,38 @@ function CartContent() {
         >
           <div>
             <h2 className="text-lg font-semibold text-green-800">
-              Compra finalizada com sucesso!
+              {finalizando
+                ? "Registrando seu pedido..."
+                : "Compra finalizada com sucesso!"}
             </h2>
             <p className="text-sm text-green-700 mt-1">
-              Obrigado pela sua compra. Adoraríamos ouvir sua opinião sobre a
-              experiência.
+              {finalizando
+                ? "Aguarde enquanto confirmamos seu pagamento."
+                : "Obrigado pela sua compra. Adoraríamos ouvir sua opinião sobre a experiência."}
             </p>
+            {pedidoErro && (
+              <p className="text-xs text-red-600 mt-2">
+                {pedidoErro}. Tente recarregar a página.
+              </p>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Link
-              href="/avaliar"
-              className="bg-blue-500 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors text-center"
-            >
-              Avaliar agora
-            </Link>
-            <button
-              type="button"
-              onClick={fecharSucesso}
-              className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer px-4 py-2"
-            >
-              Depois
-            </button>
-          </div>
+          {!finalizando && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                href="/avaliar"
+                className="bg-blue-500 text-white font-semibold px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors text-center"
+              >
+                Avaliar agora
+              </Link>
+              <button
+                type="button"
+                onClick={fecharSucesso}
+                className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer px-4 py-2"
+              >
+                Depois
+              </button>
+            </div>
+          )}
         </div>
       )}
 

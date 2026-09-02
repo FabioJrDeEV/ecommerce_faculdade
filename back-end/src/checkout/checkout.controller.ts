@@ -23,6 +23,20 @@ export class CheckoutController {
     return { url };
   }
 
+  @Post('finalizar')
+  @UseGuards(JwtAuthGuard)
+  async finalizar(
+    @Req() req: { user: { id: string } },
+    @Body() body: { items: CheckoutItem[]; stripeSessionId?: string },
+  ) {
+    const pedido = await this.checkoutService.finalizarPedido(
+      req.user.id,
+      body.items,
+      body.stripeSessionId,
+    );
+    return { pedido };
+  }
+
   @Get('test')
   @UseGuards(JwtAuthGuard)
   test(@Req() req: { user: { id: string } }) {

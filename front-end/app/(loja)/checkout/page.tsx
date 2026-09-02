@@ -61,6 +61,21 @@ export default function CheckoutPage() {
 
       const { url } = (await res.json()) as { url: string };
       if (url) {
+        try {
+          window.sessionStorage.setItem(
+            "checkout:pending",
+            JSON.stringify(
+              itens.map((item) => ({
+                id: item.id,
+                name: item.nome,
+                price: item.preco,
+                quantity: item.quantidade,
+              })),
+            ),
+          );
+        } catch {
+          // ignore
+        }
         window.location.href = url;
       } else {
         throw new Error("URL de checkout não retornada");
