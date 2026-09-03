@@ -5,6 +5,10 @@ import { AppModule } from './app.module';
 
 const logger = new Logger('Bootstrap');
 
+function normalizeUrl(url: string): string {
+  return url.trim().replace(/\/+$/, '');
+}
+
 function validarEnv() {
   const obrigatorias = ['DATABASE_URL', 'JWT_SECRET'];
   const faltando = obrigatorias.filter((k) => !process.env[k]);
@@ -14,6 +18,18 @@ function validarEnv() {
     );
     process.exit(1);
   }
+
+  // Normaliza URLs removendo barras finais (corrige 'app.com//cart' -> 'app.com/cart')
+  if (process.env.FRONT_URL) {
+    process.env.FRONT_URL = normalizeUrl(process.env.FRONT_URL);
+  }
+  if (process.env.STRIPE_SUCCESS_URL) {
+    process.env.STRIPE_SUCCESS_URL = normalizeUrl(process.env.STRIPE_SUCCESS_URL);
+  }
+  if (process.env.STRIPE_CANCEL_URL) {
+    process.env.STRIPE_CANCEL_URL = normalizeUrl(process.env.STRIPE_CANCEL_URL);
+  }
+
   if (
     !process.env.STRIPE_SECRET_KEY ||
     process.env.STRIPE_SECRET_KEY.includes('SEU_SECRET_KEY_AQUI')
@@ -53,20 +69,15 @@ async function bootstrap() {
   // Segurança: headers HTTP
   app.use(helmet());
 
-  // CORS — aceita múltiplas origens separadas por vírgula
-  // Normaliza removendo barras finais para evitar mismatch com a Origin
-  // que o navegador envia (sem barra, padrão RFC 6454)
-  const corsOrigins = (process.env.FRONT_URL || 'http://localhost:3000')
-    .split(',')
-    .map((o) => o.trim().replace(/\/+$/, ''))
-    .filter(Boolean);
+  // CORS — aceita somente a origem definida em FRONT_URL
+  const frontUrl = normalizeUrl(process.env.FRONT_URL || 'http://localhost:3000');
+  process.env.FRONT_URL = frontUrl;
 
   app.enableCors({
     origin: (origin, callback) => {
       // Permitir requisições sem Origin (curl, Postman, server-to-server)
       if (!origin) return callback(null, true);
-      const normalized = origin.replace(/\/+$/, '');
-      if (corsOrigins.includes(normalized) || corsOrigins.includes('*')) {
+      if (normalizeUrl(origin) === frontUrl) {
         return callback(null, true);
       }
       return callback(new Error(`Origin ${origin} não permitida pelo CORS`));
@@ -84,7 +95,6 @@ async function bootstrap() {
 
   const port = parseInt(process.env.PORT || '3333', 10);
   await app.listen(port, '0.0.0.0');
-  logger.log(
-    `Backend rodando em 0.0.0.0:${port} (origens: ${corsOrigins.join(', ') || '*'})`,
-  );
+  logger.log(`Backend rodando em 0.0.0.0:${port} (origem: ${frontUrl})`);
 }
+void bootstrap();
