@@ -11,7 +11,7 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import type { LoginDto, RegistrarDto } from './dto/auth.dto';
+import { LoginDto, RegistrarDto } from './dto/auth.dto';
 
 @Controller('auth')
 export class AuthController {

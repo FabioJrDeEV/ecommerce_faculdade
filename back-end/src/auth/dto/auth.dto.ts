@@ -1,16 +1,22 @@
-import { z } from 'zod';
+import { IsEmail, IsString, MinLength } from 'class-validator';
 
-export const registrarSchema = z.object({
-  nome: z.string().min(1, 'Informe o nome'),
-  email: z.string().min(1, 'Informe o e-mail').email('E-mail inválido'),
-  senha: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
-});
+export class RegistrarDto {
+  @IsString({ message: 'Informe o nome' })
+  nome!: string;
 
-export type RegistrarDto = z.infer<typeof registrarSchema>;
+  @IsEmail({}, { message: 'E-mail inválido' })
+  email!: string;
 
-export const loginSchema = z.object({
-  email: z.string().min(1, 'Informe o e-mail').email('E-mail inválido'),
-  senha: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
-});
+  @IsString({ message: 'Informe a senha' })
+  @MinLength(6, { message: 'A senha deve ter no mínimo 6 caracteres' })
+  senha!: string;
+}
 
-export type LoginDto = z.infer<typeof loginSchema>;
+export class LoginDto {
+  @IsEmail({}, { message: 'E-mail inválido' })
+  email!: string;
+
+  @IsString({ message: 'Informe a senha' })
+  @MinLength(6, { message: 'A senha deve ter no mínimo 6 caracteres' })
+  senha!: string;
+}

@@ -1,10 +1,12 @@
-import { Controller, Post, Req, Res, HttpCode, HttpStatus, Header } from '@nestjs/common';
+import { Controller, Post, Req, Res, HttpCode, HttpStatus, Header, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StripeService } from '../stripe/stripe.service';
 import { CheckoutService } from '../checkout/checkout.service';
 
 @Controller('webhook')
 export class WebhookController {
+  private readonly logger = new Logger(WebhookController.name);
+
   constructor(
     private readonly stripe: StripeService,
     private readonly checkoutService: CheckoutService,
@@ -35,14 +37,14 @@ export class WebhookController {
     try {
       event = this.stripe.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      this.logger.warn('Webhook signature verification failed');
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
     try {
       await this.checkoutService.handleWebhookEvent(event.type, event.data.object);
     } catch (err) {
-      console.error('Webhook handler error:', err);
+      this.logger.error('Webhook handler failed', err as Error);
       return res.status(500).json({ error: 'Webhook handler failed' });
     }
 

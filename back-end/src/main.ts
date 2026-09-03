@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { FiltroExcecoes } from './common/filtro-excecoes';
 
 const logger = new Logger('Bootstrap');
 
@@ -88,10 +89,14 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // Filtro global de exceções — esconde detalhes técnicos do cliente
+  app.useGlobalFilters(new FiltroExcecoes());
 
   const port = parseInt(process.env.PORT || '3333', 10);
   await app.listen(port, '0.0.0.0');

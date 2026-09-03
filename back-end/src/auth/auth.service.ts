@@ -6,12 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  loginSchema,
-  registrarSchema,
-  type LoginDto,
-  type RegistrarDto,
-} from './dto/auth.dto';
+import type { LoginDto, RegistrarDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,21 +16,19 @@ export class AuthService {
   ) {}
 
   async registrar(dados: RegistrarDto) {
-    const body = registrarSchema.parse(dados);
-
     const existente = await this.prisma.usuario.findUnique({
-      where: { email: body.email },
+      where: { email: dados.email },
     });
     if (existente) {
       throw new ConflictException('E-mail já cadastrado');
     }
 
-    const hash = await bcrypt.hash(body.senha, 10);
+    const hash = await bcrypt.hash(dados.senha, 10);
 
     const usuario = await this.prisma.usuario.create({
       data: {
-        nome: body.nome,
-        email: body.email,
+        nome: dados.nome,
+        email: dados.email,
         senha: hash,
       },
     });
@@ -48,16 +41,14 @@ export class AuthService {
   }
 
   async login(dados: LoginDto) {
-    const body = loginSchema.parse(dados);
-
     const usuario = await this.prisma.usuario.findUnique({
-      where: { email: body.email },
+      where: { email: dados.email },
     });
     if (!usuario) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const senhaValida = await bcrypt.compare(body.senha, usuario.senha);
+    const senhaValida = await bcrypt.compare(dados.senha, usuario.senha);
     if (!senhaValida) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
