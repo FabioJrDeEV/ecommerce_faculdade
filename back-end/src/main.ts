@@ -54,12 +54,23 @@ async function bootstrap() {
   app.use(helmet());
 
   // CORS — aceita múltiplas origens separadas por vírgula
+  // Normaliza removendo barras finais para evitar mismatch com a Origin
+  // que o navegador envia (sem barra, padrão RFC 6454)
   const corsOrigins = (process.env.FRONT_URL || 'http://localhost:3000')
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/+$/, ''))
     .filter(Boolean);
+
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : true,
+    origin: (origin, callback) => {
+      // Permitir requisições sem Origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      const normalized = origin.replace(/\/+$/, '');
+      if (corsOrigins.includes(normalized) || corsOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} não permitida pelo CORS`));
+    },
     credentials: true,
   });
 
@@ -77,4 +88,3 @@ async function bootstrap() {
     `Backend rodando em 0.0.0.0:${port} (origens: ${corsOrigins.join(', ') || '*'})`,
   );
 }
-void bootstrap();
