@@ -20,9 +20,7 @@ export class StripeService implements OnModuleInit {
     }
 
     try {
-      this.stripe = new Stripe(secretKey, {
-        apiVersion: '2026-07-29.dahlia' as Stripe.LatestApiVersion,
-      });
+      this.stripe = new Stripe(secretKey);
       this.logger.log('Stripe inicializado com sucesso');
     } catch (err) {
       this.logger.error('Falha ao inicializar Stripe', err as Error);
@@ -46,6 +44,7 @@ export class StripeService implements OnModuleInit {
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
+      payment_method_types: ['card'],
       line_items: params.lineItems.map((item) => ({
         price_data: {
           currency: 'brl',
