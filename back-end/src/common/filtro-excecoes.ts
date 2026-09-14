@@ -37,9 +37,13 @@ export class FiltroExcecoes implements ExceptionFilter {
 
   /**
    * Extrai status HTTP e mensagem amigável de qualquer exceção.
-   * Para erros do servidor (>=500), sempre retorna mensagem genérica.
    */
   private extrair(exception: unknown): { status: number; mensagem: string } {
+    // Erro de CORS — Nest lança Error comum, não HttpException
+    if (exception instanceof Error && /não permitida pelo CORS/i.test(exception.message)) {
+      return { status: HttpStatus.FORBIDDEN, mensagem: 'Origem não permitida' };
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const mensagem = this.mensagemDoHttp(exception);
@@ -55,7 +59,7 @@ export class FiltroExcecoes implements ExceptionFilter {
       return {
         status: HttpStatus.BAD_REQUEST,
         mensagem:
-          mensagens.length > 0 ? mensagens.join(', ') : 'Dados inválidos',
+          mensagens.length > 0 ? this.sanitizar(400, mensagens.join(', ')) : 'Dados inválidos',
       };
     }
 
@@ -90,14 +94,31 @@ export class FiltroExcecoes implements ExceptionFilter {
   }
 
   /**
-   * Para 4xx: mantém a mensagem (já é amigável).
-   * Para 5xx: sempre genérico.
-   * Filtra mensagens técnicas que vazaram (Prisma, Nest, query, etc).
+   * Sanitiza mensagens que vazaram termos técnicos ou que estão em inglês
+   * com as versões em PT-BR.
    */
   private sanitizar(status: number, mensagem: string): string {
     if (status >= 500) return 'Erro interno do servidor';
 
-    const lower = mensagem.toLowerCase();
+    const lower = mensagem.toLowerCase().trim();
+
+    // Mensagens padrão em inglês vindas do Nest/Express
+    const mapaIngles: Record<string, [number, string]> = {
+      'unauthorized': [HttpStatus.UNAUTHORIZED, 'Credenciais inválidas'],
+      'forbidden': [HttpStatus.FORBIDDEN, 'Acesso negado'],
+      'not found': [HttpStatus.NOT_FOUND, 'Recurso não encontrado'],
+      'bad request': [HttpStatus.BAD_REQUEST, 'Dados inválidos'],
+      'conflict': [HttpStatus.CONFLICT, 'Conflito de dados'],
+      'too many requests': [HttpStatus.TOO_MANY_REQUESTS, 'Muitas requisições. Tente novamente em instantes.'],
+      'unprocessable entity': [HttpStatus.UNPROCESSABLE_ENTITY, 'Dados inválidos'],
+    };
+    for (const [termo, [st, msg]] of Object.entries(mapaIngles)) {
+      if (lower === termo || lower.startsWith(termo + ' ')) {
+        return msg;
+      }
+    }
+
+    // Termos técnicos que vazaram (Prisma, Nest, etc.)
     const termosTecnicos = [
       'prisma',
       'nestjs',
